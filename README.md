@@ -41,13 +41,16 @@ This becomes your `GITHUB_WEBHOOK_SECRET`. It is used to verify that webhook req
 docker build -t devin-demo .
 ```
 
-### Step 4 — Create your `.env` file
+### Step 4 — Create your env files
+
+Docker requires plain `KEY=value` format. Local dev (`npm run dev`) sources the file as a shell script and requires `export KEY=value`. Keep two separate files:
 
 ```bash
-cp .env.example .env
+cp .env.example .env.docker   # for Docker
+cp .env.example .env          # for npm run dev — prefix each line with "export "
 ```
 
-Fill in your values (format is `KEY=value` with no `export`):
+Fill in your values in both files. `.env.docker` should look like:
 
 ```
 DEVIN_API_KEY=your_devin_api_key
@@ -62,9 +65,16 @@ PORT=3000
 ```bash
 docker run -d \
   -p 3000:3000 \
-  --env-file .env \
+  --env-file .env.docker \
   --name devin-demo \
   devin-demo
+```
+
+If successful, Docker will print a long container ID and return you to the prompt — that's expected. Confirm the service is running:
+
+```bash
+curl http://localhost:3000/health
+# {"status":"ok"}
 ```
 
 The service must be reachable from the internet for GitHub to deliver webhooks. If running locally, expose it with [ngrok](https://ngrok.com):
@@ -78,7 +88,7 @@ Ngrok will give you a public URL like `https://abc123.ngrok-free.app` — use th
 ### Step 6 — Register the webhook in GitHub
 
 1. Go to your repository → **Settings → Webhooks → Add webhook**
-2. **Payload URL**: `https://<your-host>/webhook`
+2. **Payload URL**: `https://<your-host>/webhook` — the `/webhook` path is required; the service will return 404 without it
 3. **Content type**: `application/json`
 4. **Secret**: the value from Step 2
 5. **Which events**: select **Let me select individual events** → check **Issues** only
